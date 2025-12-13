@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
+using DogBarber.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,6 +96,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseErrorHandling();
+app.UseRequestLogging();
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
