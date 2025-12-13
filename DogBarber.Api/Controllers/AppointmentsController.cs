@@ -69,6 +69,11 @@ public class AppointmentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] AppointmentDto dto)
     {
+        // Ensure appointment date is in the future (compare in UTC)
+        var requestedUtc = dto.AppointmentDate.ToUniversalTime();
+        if (requestedUtc <= DateTime.UtcNow)
+            return BadRequest("Appointment date must be in the future");
+
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
         var user = await _userManager.FindByIdAsync(userId!);
         if (user == null) return Unauthorized();
@@ -85,7 +90,7 @@ public class AppointmentsController : ControllerBase
         {
             UserId = user.Id,
             GroomingTypeId = dto.GroomingTypeId,
-            AppointmentDate = dto.AppointmentDate.ToUniversalTime(),
+            AppointmentDate = requestedUtc,
             CreatedAt = DateTime.UtcNow,
             Price = price,
             DurationMinutes = grooming.DurationMinutes
@@ -94,7 +99,20 @@ public class AppointmentsController : ControllerBase
         _db.Appointments.Add(appointment);
         await _db.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment);
+        // Return a lightweight response to avoid serializing navigation properties and cycles
+        var response = new
+        {
+            appointment.Id,
+            appointment.AppointmentDate,
+            appointment.CreatedAt,
+            UserName = user.UserName,
+            FirstName = user.FirstName,
+            GroomingType = grooming.Name,
+            appointment.Price,
+            appointment.DurationMinutes
+        };
+
+        return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, response);
     }
 
     [HttpPut("{id}")]
@@ -109,11 +127,16 @@ public class AppointmentsController : ControllerBase
         // cannot edit same day
         if (a.AppointmentDate.Date == DateTime.UtcNow.Date) return BadRequest("Cannot edit appointment on the same day");
 
+        // Ensure new appointment date is in the future (compare in UTC)
+        var requestedUtc = dto.AppointmentDate.ToUniversalTime();
+        if (requestedUtc <= DateTime.UtcNow)
+            return BadRequest("Appointment date must be in the future");
+
         var grooming = await _db.GroomingTypes.FindAsync(dto.GroomingTypeId);
         if (grooming == null) return BadRequest("Invalid grooming type");
 
         a.GroomingTypeId = dto.GroomingTypeId;
-        a.AppointmentDate = dto.AppointmentDate.ToUniversalTime();
+        a.AppointmentDate = requestedUtc;
         a.DurationMinutes = grooming.DurationMinutes;
 
         // Recalculate price with discount rule
