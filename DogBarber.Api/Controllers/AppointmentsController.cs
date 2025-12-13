@@ -22,17 +22,25 @@ public class AppointmentsController : ControllerBase
         _userManager = userManager;
     }
 
-    // List waiting customers (filter by name/date)
+    // List waiting customers (filter by name/date range)
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] string? name, [FromQuery] DateTime? date)
+    public async Task<IActionResult> Get([FromQuery] string? name, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
     {
         var query = _db.Appointments.Include(a => a.User).Include(a => a.GroomingType).AsQueryable();
         if (!string.IsNullOrWhiteSpace(name))
             query = query.Where(a => a.User.UserName.Contains(name) || a.User.FirstName.Contains(name));
-        if (date.HasValue)
+
+        if (fromDate.HasValue)
         {
-            var d = date.Value.Date;
-            query = query.Where(a => a.AppointmentDate.Date == d);
+            var start = fromDate.Value.Date;
+            query = query.Where(a => a.AppointmentDate >= start);
+        }
+
+        if (toDate.HasValue)
+        {
+            // make end exclusive by moving to next day
+            var endExclusive = toDate.Value.Date.AddDays(1);
+            query = query.Where(a => a.AppointmentDate < endExclusive);
         }
 
         var list = await query.OrderBy(a => a.AppointmentDate).Select(a => new
@@ -124,8 +132,9 @@ public class AppointmentsController : ControllerBase
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
         if (a.UserId != userId) return Forbid();
 
-        // cannot edit same day
-        if (a.AppointmentDate.Date == DateTime.UtcNow.Date) return BadRequest("Cannot edit appointment on the same day");
+        // Only allow editing appointments that are still in the future (includes same-day future times)
+        if (a.AppointmentDate.ToUniversalTime() <= DateTime.UtcNow)
+            return BadRequest("Cannot edit past appointments");
 
         // Ensure new appointment date is in the future (compare in UTC)
         var requestedUtc = dto.AppointmentDate.ToUniversalTime();
