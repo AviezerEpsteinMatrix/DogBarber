@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Button,
@@ -10,6 +10,7 @@ import {
   CircularProgress,
 } from '@mui/material'
 import { Person, Lock, Email, Badge } from '@mui/icons-material'
+import type { AxiosErrorResponse } from '../api'
 import { register } from '../api'
 import { useToast } from '../components/Toast'
 
@@ -23,24 +24,29 @@ export default function Register() {
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
     setSuccess(null)
     setLoading(true)
     try {
       await register({ userName, email, password, firstName })
-      setSuccess('ההרשמה בוצעה בהצלחה! כעת תוכל להתחבר.')
-      showToast('ההרשמה בוצעה בהצלחה!', 'success')
+      setSuccess('Registration successful! You can now login.')
+      showToast('Registration successful!', 'success')
       // Reset form
       setUserName('')
       setEmail('')
       setPassword('')
       setFirstName('')
-    } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'ההרשמה נכשלה'
-      setError(message)
-      showToast(message, 'error')
+    } catch (err) {
+      const message = err && typeof err === 'object' && 'response' in err
+        ? (err as AxiosErrorResponse).response?.data?.message || (err as AxiosErrorResponse).message
+        : err instanceof Error
+        ? err.message
+        : 'Registration failed'
+      const errorMessage = message || 'Registration failed'
+      setError(errorMessage)
+      showToast(errorMessage, 'error')
     } finally {
       setLoading(false)
     }
@@ -59,10 +65,10 @@ export default function Register() {
     >
       <Box sx={{ mb: 3, textAlign: 'center' }}>
         <Typography variant="h4" component="h1" gutterBottom fontWeight="bold" color="primary">
-          הרשמה
+          Register
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          צור חשבון חדש כדי להתחיל
+          Create a new account to get started
         </Typography>
       </Box>
 
@@ -80,7 +86,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="שם משתמש"
+          label="Username"
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
           required
@@ -101,7 +107,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="שם פרטי"
+          label="First Name"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           required
@@ -122,7 +128,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="אימייל"
+          label="Email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -144,7 +150,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="סיסמה"
+          label="Password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -183,7 +189,7 @@ export default function Register() {
             },
           }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'הירשם'}
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Register'}
         </Button>
       </Box>
     </Paper>

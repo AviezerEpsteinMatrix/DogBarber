@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -11,6 +11,7 @@ import {
   CircularProgress,
 } from '@mui/material'
 import { Person, Lock } from '@mui/icons-material'
+import type { AxiosErrorResponse } from '../api'
 import { login, getCurrentCustomer } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../components/Toast'
@@ -24,7 +25,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
@@ -37,11 +38,15 @@ export default function Login() {
       // Fetch customer info
       const customer = await getCurrentCustomer()
       setCustomer(customer)
-      showToast('התחברת בהצלחה', 'success')
+      showToast('Logged in successfully', 'success')
       navigate('/appointments')
-    } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'שגיאה בהתחברות'
-      setError(message)
+    } catch (err) {
+      const message = err && typeof err === 'object' && 'response' in err
+        ? (err as AxiosErrorResponse).response?.data?.message || (err as AxiosErrorResponse).message
+        : err instanceof Error
+        ? err.message
+        : 'Login error'
+      setError(message || 'Login error')
     } finally {
       setLoading(false)
     }
@@ -60,10 +65,10 @@ export default function Login() {
     >
       <Box sx={{ mb: 3, textAlign: 'center' }}>
         <Typography variant="h4" component="h1" gutterBottom fontWeight="bold" color="primary">
-          התחברות
+          Login
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          הכנס פרטי התחברות כדי להמשיך
+          Enter your credentials to continue
         </Typography>
       </Box>
 
@@ -76,7 +81,7 @@ export default function Login() {
 
         <TextField
           fullWidth
-          label="שם משתמש"
+          label="Username"
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
           required
@@ -97,7 +102,7 @@ export default function Login() {
 
         <TextField
           fullWidth
-          label="סיסמה"
+          label="Password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -136,7 +141,7 @@ export default function Login() {
             },
           }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'התחבר'}
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Login'}
         </Button>
       </Box>
     </Paper>

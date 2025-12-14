@@ -100,6 +100,27 @@ export interface AppointmentView {
   createdAt: string
 }
 
+// Error response interfaces
+export interface ApiErrorResponse {
+  message?: string
+  errors?: string[]
+}
+
+export interface AxiosErrorResponse {
+  response?: {
+    data?: ApiErrorResponse
+    status?: number
+  }
+  message?: string
+}
+
+// Query parameters interfaces
+export interface GetAppointmentsParams {
+  name?: string
+  fromDate?: string
+  toDate?: string
+}
+
 // Auth endpoints
 export async function login(body: LoginDto): Promise<LoginResponse> {
   const res = await api.post<LoginResponse>('/auth/login', body)
@@ -111,11 +132,7 @@ export async function register(body: RegisterDto): Promise<void> {
 }
 
 // Appointment endpoints
-export async function getAppointments(params?: {
-  name?: string
-  fromDate?: string
-  toDate?: string
-}): Promise<Appointment[]> {
+export async function getAppointments(params?: GetAppointmentsParams): Promise<Appointment[]> {
   const res = await api.get<Appointment[]>('/appointments', { params })
   return res.data
 }

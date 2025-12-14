@@ -1,28 +1,29 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
-import { Snackbar, Alert } from '@mui/material'
+import { createContext, useContext, useState } from "react";
+import type { ReactNode } from "react";
+import { Snackbar, Alert } from "@mui/material";
 
-type AlertSeverity = 'error' | 'info' | 'success' | 'warning'
+type AlertSeverity = "error" | "info" | "success" | "warning";
 
 interface ToastContextType {
-  showToast: (message: string, severity?: AlertSeverity) => void
+  showToast: (message: string, severity?: AlertSeverity) => void;
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined)
+const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false)
-  const [message, setMessage] = useState('')
-  const [severity, setSeverity] = useState<AlertSeverity>('info')
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [severity, setSeverity] = useState<AlertSeverity>("info");
 
-  const showToast = (msg: string, sev: AlertSeverity = 'info') => {
-    setMessage(msg)
-    setSeverity(sev)
-    setOpen(true)
-  }
+  const showToast = (msg: string, sev: AlertSeverity = "info") => {
+    setMessage(msg);
+    setSeverity(sev);
+    setOpen(true);
+  };
 
   const handleClose = () => {
-    setOpen(false)
-  }
+    setOpen(false);
+  };
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -31,21 +32,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         open={open}
         autoHideDuration={6000}
         onClose={handleClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert onClose={handleClose} severity={severity} sx={{ width: '100%' }}>
+        <Alert onClose={handleClose} severity={severity} sx={{ width: "100%" }}>
           {message}
         </Alert>
       </Snackbar>
     </ToastContext.Provider>
-  )
+  );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
-  const context = useContext(ToastContext)
+  const context = useContext(ToastContext);
   if (context === undefined) {
-    throw new Error('useToast must be used within a ToastProvider')
+    throw new Error("useToast must be used within a ToastProvider");
   }
-  return context
+  return context;
 }
-

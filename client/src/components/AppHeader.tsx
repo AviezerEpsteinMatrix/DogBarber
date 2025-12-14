@@ -1,4 +1,3 @@
-import React from 'react'
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material'
 import { Logout, Pets } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
@@ -12,7 +11,7 @@ export default function AppHeader() {
 
   const handleLogout = () => {
     logout()
-    showToast('התנתקת בהצלחה', 'info')
+    showToast('Logged out successfully', 'info')
     navigate('/login')
   }
 
@@ -21,15 +20,15 @@ export default function AppHeader() {
       <Toolbar>
         <Pets sx={{ mr: 2 }} />
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          מספרת הכלבים
+          Dog Barber
         </Typography>
         {customer && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="body2">
-              שלום, {customer.firstName} ({customer.userName})
+              Hello, {customer.firstName} ({customer.userName})
             </Typography>
             <Button color="inherit" startIcon={<Logout />} onClick={handleLogout}>
-              התנתק
+              Logout
             </Button>
           </Box>
         )}
