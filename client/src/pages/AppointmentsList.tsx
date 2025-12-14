@@ -26,6 +26,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
 import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../components/Toast";
 import AppointmentForm from "../components/AppointmentForm";
@@ -39,6 +40,7 @@ import { getAppointments, getAppointment, deleteAppointment } from "../api";
 import { dictionary } from "../dictionary";
 
 dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export default function AppointmentsList() {
   const { customer } = useAuth();
@@ -63,8 +65,8 @@ export default function AppointmentsList() {
     try {
       const params: GetAppointmentsParams = {};
       if (nameFilter) params.name = nameFilter;
-      if (fromDate) params.fromDate = fromDate.startOf("day").toISOString();
-      if (toDate) params.toDate = toDate.endOf("day").toISOString();
+      if (fromDate) params.fromDate = fromDate.format("YYYY-MM-DD");
+      if (toDate) params.toDate = toDate.format("YYYY-MM-DD");
 
       const data = await getAppointments(params);
       // Sort by appointmentDate
@@ -113,16 +115,32 @@ export default function AppointmentsList() {
 
     try {
       await deleteAppointment(appointmentToDelete.id);
+      // 204 No Content - success
       showToast(dictionary.appointmentDeletedSuccessfully, "success");
       setDeleteConfirmOpen(false);
       setAppointmentToDelete(null);
-      fetchAppointments();
+      // Remove from list client-side
+      setAppointments((prev) =>
+        prev.filter((a) => a.id !== appointmentToDelete.id)
+      );
     } catch (error) {
-      const message =
-        error && typeof error === "object" && "response" in error
-          ? (error as AxiosErrorResponse).response?.data?.message
-          : undefined;
-      showToast(message || dictionary.errorDeletingAppointment, "error");
+      // Handle 400 Bad Request with server message
+      const errorResponse = error as AxiosErrorResponse;
+      let message = dictionary.errorDeletingAppointment;
+      
+      if (errorResponse.response?.status === 400) {
+        // Server returns error message in response body as { "error": "..." }
+        const errorData = errorResponse.response.data as { error?: string; message?: string };
+        if (errorData?.error) {
+          message = errorData.error;
+        } else if (errorData?.message) {
+          message = errorData.message;
+        }
+      } else if (errorResponse.response?.status === 401 || errorResponse.response?.status === 403) {
+        message = "אין הרשאה למחוק תור זה";
+      }
+      
+      showToast(message, "error");
     }
   };
 
@@ -139,18 +157,22 @@ export default function AppointmentsList() {
   };
 
   const canDeleteToday = (appointment: Appointment) => {
-    const appointmentDate = dayjs(appointment.appointmentDate);
-    const today = dayjs();
-    return !appointmentDate.isSame(today, "day");
+    // Parse UTC date and compare with today in local timezone
+    const appointmentDate = dayjs.utc(appointment.appointmentDate).local();
+    const today = dayjs().startOf("day");
+    const appointmentDay = appointmentDate.startOf("day");
+    return !appointmentDay.isSame(today, "day");
   };
 
   const formatDate = (dateString: string) => {
-    return dayjs(dateString).format("DD/MM/YYYY HH:mm");
+    // Convert UTC to local time for display
+    return dayjs.utc(dateString).local().format("DD/MM/YYYY HH:mm");
   };
 
   const formatPrice = (price: number) => {
     return `₪${price.toFixed(2)}`;
   };
+
 
   return (
     <Box sx={{ p: 3 }}>
@@ -250,17 +272,16 @@ export default function AppointmentsList() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>{dictionary.customerName}</TableCell>
+                <TableCell>{dictionary.username}</TableCell>
                 <TableCell>{dictionary.dateAndTime}</TableCell>
                 <TableCell>{dictionary.groomingType}</TableCell>
-                <TableCell>{dictionary.price}</TableCell>
                 <TableCell align="center">{dictionary.actions}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {appointments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
                     <Typography color="text.secondary">
                       {dictionary.noAppointmentsToDisplay}
                     </Typography>
@@ -274,16 +295,13 @@ export default function AppointmentsList() {
                     sx={{ cursor: "pointer" }}
                     onClick={() => handleViewDetail(appointment)}
                   >
-                    <TableCell>
-                      {appointment.firstName} ({appointment.userName})
-                    </TableCell>
+                    <TableCell>{appointment.userName}</TableCell>
                     <TableCell>
                       {formatDate(appointment.appointmentDate)}
                     </TableCell>
                     <TableCell>
                       <Chip label={appointment.groomingType} size="small" />
                     </TableCell>
-                    <TableCell>{formatPrice(appointment.price)}</TableCell>
                     <TableCell
                       align="center"
                       onClick={(e) => e.stopPropagation()}
@@ -352,11 +370,18 @@ export default function AppointmentsList() {
             >
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
-                  {dictionary.customerName}
+                  {dictionary.username}
                 </Typography>
                 <Typography variant="body1">
-                  {selectedAppointment.firstName} (
-                  {selectedAppointment.userName})
+                  {selectedAppointment.userName}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {dictionary.firstName}
+                </Typography>
+                <Typography variant="body1">
+                  {selectedAppointment.firstName}
                 </Typography>
               </Box>
               <Box>

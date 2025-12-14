@@ -106,13 +106,15 @@ export default function AppointmentForm({
   useEffect(() => {
     if (open && appointment && groomingTypes.length > 0) {
       // Edit mode - load appointment data
+      // Convert UTC date to local timezone for display
       const type = groomingTypes.find(
         (t) => t.name === appointment.groomingType
       );
       if (type) {
         setSelectedTypeId(type.id);
       }
-      setAppointmentDate(dayjs(appointment.appointmentDate));
+      // Parse UTC date and convert to local for the picker
+      setAppointmentDate(dayjs.utc(appointment.appointmentDate).local());
     } else if (open && !appointment) {
       // Create mode
       setSelectedTypeId(0);
@@ -130,8 +132,10 @@ export default function AppointmentForm({
     if (!appointmentDate) {
       newErrors.date = dictionary.pleaseSelectDateAndTime;
     } else {
-      const now = dayjs();
-      if (appointmentDate.isBefore(now) || appointmentDate.isSame(now)) {
+      // Validate in UTC - convert local time to UTC for comparison
+      const appointmentDateUTC = appointmentDate.utc();
+      const nowUTC = dayjs.utc();
+      if (appointmentDateUTC.isBefore(nowUTC) || appointmentDateUTC.isSame(nowUTC)) {
         newErrors.date = dictionary.appointmentDateMustBeInFuture;
       }
     }
@@ -145,6 +149,7 @@ export default function AppointmentForm({
 
     setLoading(true);
     try {
+      // Convert local datetime to UTC ISO string before sending
       const appointmentDto: AppointmentDto = {
         groomingTypeId: selectedTypeId,
         appointmentDate: appointmentDate!.utc().toISOString(),

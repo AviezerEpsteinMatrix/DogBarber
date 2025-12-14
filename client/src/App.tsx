@@ -16,7 +16,6 @@ import AppHeader from "./components/AppHeader";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AppointmentsList from "./pages/AppointmentsList";
-import TestViewAndSP from "./pages/TestViewAndSP";
 import { heIL } from "@mui/x-date-pickers/locales";
 
 import { CacheProvider } from "@emotion/react";
@@ -161,25 +160,6 @@ export default function App() {
                         <Container maxWidth="xl" sx={{ py: 3 }}>
                           <AppHeader />
                           <AppointmentsList />
-                        </Container>
-                      </Box>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/test-view-sp"
-                  element={
-                    <ProtectedRoute>
-                      <Box
-                        sx={{
-                          minHeight: "100vh",
-                          background:
-                            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                        }}
-                      >
-                        <Container maxWidth="xl" sx={{ py: 3 }}>
-                          <AppHeader />
-                          <TestViewAndSP />
                         </Container>
                       </Box>
                     </ProtectedRoute>

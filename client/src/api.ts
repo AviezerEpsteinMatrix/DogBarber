@@ -49,17 +49,23 @@ export interface LoginResponse {
   token: string;
 }
 
+// Minimal appointment data from list endpoint
 export interface Appointment {
   id: number;
   userName: string;
-  firstName: string;
-  appointmentDate: string;
+  appointmentDate: string; // UTC ISO string
   groomingType: string;
-  price: number;
 }
 
-export interface AppointmentDetail extends Appointment {
-  createdAt: string;
+// Full appointment details from detail endpoint
+export interface AppointmentDetail {
+  id: number;
+  appointmentDate: string; // UTC ISO string
+  createdAt: string; // UTC ISO string
+  userName: string;
+  firstName: string;
+  groomingType: string;
+  price: number;
   durationMinutes: number;
 }
 
@@ -87,23 +93,10 @@ export interface CustomerHistory {
   lastAppointmentDate: string | null;
 }
 
-export interface AppointmentView {
-  id: number;
-  userId: string;
-  userName: string | null;
-  firstName: string | null;
-  email: string | null;
-  groomingTypeId: number;
-  dogSize: string | null;
-  price: number;
-  durationMinutes: number;
-  appointmentDate: string;
-  createdAt: string;
-}
-
 // Error response interfaces
 export interface ApiErrorResponse {
   message?: string;
+  error?: string; // Server returns "error" field for 400 responses
   errors?: string[];
 }
 
@@ -118,8 +111,8 @@ export interface AxiosErrorResponse {
 // Query parameters interfaces
 export interface GetAppointmentsParams {
   name?: string;
-  fromDate?: string;
-  toDate?: string;
+  fromDate?: string; // Date in YYYY-MM-DD format
+  toDate?: string; // Date in YYYY-MM-DD format
 }
 
 // Auth endpoints
@@ -160,6 +153,8 @@ export async function updateAppointment(
 }
 
 export async function deleteAppointment(id: number): Promise<void> {
+  // Server returns 204 No Content on success, which axios handles automatically
+  // 400 errors will be thrown and should be caught by caller
   await api.delete(`/appointments/${id}`);
 }
 
@@ -171,21 +166,6 @@ export async function getCurrentCustomer(): Promise<Customer> {
 
 export async function getCustomerHistory(id: number): Promise<CustomerHistory> {
   const res = await api.get<CustomerHistory>(`/customers/${id}/history`);
-  return res.data;
-}
-
-// Get customer history for currently authenticated user (stored procedure)
-export async function getMyHistory(): Promise<CustomerHistory> {
-  const res = await api.get<CustomerHistory>("/customers/history");
-  return res.data;
-}
-
-// Get appointments view (SQL view) with optional date filter
-export async function getAppointmentsView(
-  date?: Date
-): Promise<AppointmentView[]> {
-  const params = date ? { date: date.toISOString().split("T")[0] } : {};
-  const res = await api.get<AppointmentView[]>("/customers/view", { params });
   return res.data;
 }
 

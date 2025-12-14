@@ -87,20 +87,4 @@ export const dictionary = {
   eligibleForDiscount: "זכאי ל",
   discountPercent: "10% הנחה!",
   discountedPrice: "מחיר מוזל",
-
-  // Test View and SP
-  testViewAndSp: "בדוק View ו-SP",
-  testViewAndSpTitle: "בדיקת View ו-Stored Procedure",
-  testHistoryButton: "בדוק History (SP)",
-  testViewButton: "בדוק View",
-  historyResults: "תוצאות History",
-  viewResults: "תוצאות View",
-  bookingCount: "מספר תורים",
-  lastAppointmentDate: "תאריך תור אחרון",
-  filterByDate: "סנן לפי תאריך",
-  loading: "טוען...",
-  error: "שגיאה",
-  noData: "אין נתונים",
-  userId: "מזהה משתמש",
-  dogSize: "גודל כלב",
 } as const;
