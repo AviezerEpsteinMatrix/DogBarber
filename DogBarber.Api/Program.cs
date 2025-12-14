@@ -86,6 +86,18 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Add CORS for development (Vite client)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevCors", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
@@ -99,6 +111,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseErrorHandling();
 app.UseRequestLogging();
+
+// Add routing then CORS so the middleware can handle preflight requests correctly
+app.UseRouting();
+app.UseCors("DevCors");
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

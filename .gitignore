@@ -20,3 +20,11 @@ build/
 # Environment / secrets
 *.env
 .env*
+
+# Client app
+/client/node_modules/
+/client/dist/
+/client/.vite/
+/client/.next/
+/client/.env*
+/client/.env
