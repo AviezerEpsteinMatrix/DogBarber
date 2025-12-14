@@ -97,11 +97,13 @@ export default function AppointmentForm({
   useEffect(() => {
     if (open) {
       loadGroomingTypes();
-      if (customer) {
+      // Only load history for new appointments (not when editing)
+      // History is used to show discount eligibility, which is only relevant for new appointments
+      if (customer && !appointment) {
         loadCustomerHistory();
       }
     }
-  }, [open, customer, loadGroomingTypes, loadCustomerHistory]);
+  }, [open, customer, appointment, loadGroomingTypes, loadCustomerHistory]);
 
   useEffect(() => {
     if (open && appointment && groomingTypes.length > 0) {
@@ -135,7 +137,10 @@ export default function AppointmentForm({
       // Validate in UTC - convert local time to UTC for comparison
       const appointmentDateUTC = appointmentDate.utc();
       const nowUTC = dayjs.utc();
-      if (appointmentDateUTC.isBefore(nowUTC) || appointmentDateUTC.isSame(nowUTC)) {
+      if (
+        appointmentDateUTC.isBefore(nowUTC) ||
+        appointmentDateUTC.isSame(nowUTC)
+      ) {
         newErrors.date = dictionary.appointmentDateMustBeInFuture;
       }
     }
@@ -195,7 +200,9 @@ export default function AppointmentForm({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {appointment ? dictionary.editAppointment : dictionary.newAppointmentForm}
+        {appointment
+          ? dictionary.editAppointment
+          : dictionary.newAppointmentForm}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 1 }}>
@@ -215,7 +222,9 @@ export default function AppointmentForm({
                 helperText={
                   errors.type ||
                   (selectedType &&
-                    `${dictionary.priceLabel}: ₪${selectedType.price.toFixed(2)}, ${dictionary.durationLabel}: ${
+                    `${dictionary.priceLabel}: ₪${selectedType.price.toFixed(
+                      2
+                    )}, ${dictionary.durationLabel}: ${
                       selectedType.durationMinutes
                     } ${dictionary.minutes}`)
                 }
@@ -231,8 +240,11 @@ export default function AppointmentForm({
 
               {selectedType && discountEligible && (
                 <Alert severity="info">
-                  {dictionary.youHavePreviousAppointments} {bookingCount} {dictionary.previousAppointments} - {dictionary.eligibleForDiscount}
-                  {dictionary.discountPercent} {dictionary.discountedPrice}: ₪{calculatedPrice.toFixed(2)}
+                  {dictionary.youHavePreviousAppointments} {bookingCount}{" "}
+                  {dictionary.previousAppointments} -{" "}
+                  {dictionary.eligibleForDiscount}
+                  {dictionary.discountPercent} {dictionary.discountedPrice}: ₪
+                  {calculatedPrice.toFixed(2)}
                 </Alert>
               )}
 
@@ -264,7 +276,8 @@ export default function AppointmentForm({
                     {dictionary.type}: {selectedType.name}
                   </Typography>
                   <Typography variant="body2">
-                    {dictionary.durationLabel}: {selectedType.durationMinutes} {dictionary.minutes}
+                    {dictionary.durationLabel}: {selectedType.durationMinutes}{" "}
+                    {dictionary.minutes}
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
                     {dictionary.estimatedPrice}: ₪{calculatedPrice.toFixed(2)}
