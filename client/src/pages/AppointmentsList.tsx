@@ -192,7 +192,7 @@ export default function AppointmentsList() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 0, sm: 3 } }}>
       <Box
         sx={{
           display: "flex",
