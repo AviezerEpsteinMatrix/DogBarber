@@ -8,6 +8,8 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using DogBarber.Api.Middleware;
+using DogBarber.Api.Repositories;
+using DogBarber.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +54,16 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+// Register repositories and services
+builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+builder.Services.AddScoped<IGroomingTypeRepository, GroomingTypeRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+
+builder.Services.AddScoped<AppointmentService>();
+builder.Services.AddScoped<GroomingTypeService>();
+builder.Services.AddScoped<CustomerService>();
+builder.Services.AddScoped<AuthService>();
+
 // Add Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -91,7 +103,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DevCors", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

@@ -1,6 +1,7 @@
 using DogBarber.Api.Data;
 using DogBarber.Api.Dto;
 using DogBarber.Api.Models;
+using DogBarber.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,20 +14,21 @@ namespace DogBarber.Api.Controllers;
 [Authorize]
 public class AppointmentsController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly AppointmentService _svc;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly AppDbContext _db;
 
-    public AppointmentsController(AppDbContext db, UserManager<ApplicationUser> userManager)
+    public AppointmentsController(AppointmentService svc, UserManager<ApplicationUser> userManager, AppDbContext db)
     {
-        _db = db;
+        _svc = svc;
         _userManager = userManager;
+        _db = db;
     }
 
-    // List waiting customers (filter by name/date range)
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] string? name, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
     {
-        var query = _db.Appointments.Include(a => a.User).Include(a => a.GroomingType).AsQueryable();
+        var query = _svc.Query().Include(a => a.User).Include(a => a.GroomingType).AsQueryable();
         if (!string.IsNullOrWhiteSpace(name))
             query = query.Where(a => a.User.UserName.Contains(name) || a.User.FirstName.Contains(name));
 
@@ -38,7 +40,6 @@ public class AppointmentsController : ControllerBase
 
         if (toDate.HasValue)
         {
-            // make end exclusive by moving to next day
             var endExclusive = toDate.Value.Date.AddDays(1);
             query = query.Where(a => a.AppointmentDate < endExclusive);
         }
@@ -59,8 +60,9 @@ public class AppointmentsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var a = await _db.Appointments.Include(x => x.User).Include(x => x.GroomingType).FirstOrDefaultAsync(x => x.Id == id);
+        var a = await _svc.FindAsync(id);
         if (a == null) return NotFound();
+        await Task.CompletedTask; // keep async
         return Ok(new
         {
             a.Id,
@@ -77,7 +79,6 @@ public class AppointmentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] AppointmentDto dto)
     {
-        // Ensure appointment date is in the future (compare in UTC)
         var requestedUtc = dto.AppointmentDate.ToUniversalTime();
         if (requestedUtc <= DateTime.UtcNow)
             return BadRequest("Appointment date must be in the future");
@@ -86,92 +87,147 @@ public class AppointmentsController : ControllerBase
         var user = await _userManager.FindByIdAsync(userId!);
         if (user == null) return Unauthorized();
 
-        var grooming = await _db.GroomingTypes.FindAsync(dto.GroomingTypeId);
-        if (grooming == null) return BadRequest("Invalid grooming type");
-
-        // Calculate price and duration, apply discount if needed
-        var pastBookings = await _db.Appointments.CountAsync(x => x.UserId == user.Id && x.AppointmentDate < DateTime.UtcNow);
-        var price = grooming.Price;
-        if (pastBookings > 3) price = price * 0.9m; // 10% discount for more than 3 past bookings
-
-        var appointment = new Appointment
+        try
         {
-            UserId = user.Id,
-            GroomingTypeId = dto.GroomingTypeId,
-            AppointmentDate = requestedUtc,
-            CreatedAt = DateTime.UtcNow,
-            Price = price,
-            DurationMinutes = grooming.DurationMinutes
-        };
+            var appointment = await _svc.CreateAsync(user.Id, dto);
 
-        _db.Appointments.Add(appointment);
-        await _db.SaveChangesAsync();
+            var response = new
+            {
+                appointment.Id,
+                appointment.AppointmentDate,
+                appointment.CreatedAt,
+                UserName = user.UserName,
+                FirstName = user.FirstName,
+                GroomingType = (await _svc.FindAsync(appointment.Id)).GroomingType.Name,
+                appointment.Price,
+                appointment.DurationMinutes
+            };
 
-        // Return a lightweight response to avoid serializing navigation properties and cycles
-        var response = new
+            return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, response);
+        }
+        catch (ArgumentException ex)
         {
-            appointment.Id,
-            appointment.AppointmentDate,
-            appointment.CreatedAt,
-            UserName = user.UserName,
-            FirstName = user.FirstName,
-            GroomingType = grooming.Name,
-            appointment.Price,
-            appointment.DurationMinutes
-        };
-
-        return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, response);
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] AppointmentDto dto)
     {
-        var a = await _db.Appointments.FindAsync(id);
+        var a = await _svc.FindAsync(id);
         if (a == null) return NotFound();
 
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
         if (a.UserId != userId) return Forbid();
 
-        // Only allow editing appointments that are still in the future (includes same-day future times)
         if (a.AppointmentDate.ToUniversalTime() <= DateTime.UtcNow)
             return BadRequest("Cannot edit past appointments");
 
-        // Ensure new appointment date is in the future (compare in UTC)
         var requestedUtc = dto.AppointmentDate.ToUniversalTime();
         if (requestedUtc <= DateTime.UtcNow)
             return BadRequest("Appointment date must be in the future");
 
-        var grooming = await _db.GroomingTypes.FindAsync(dto.GroomingTypeId);
-        if (grooming == null) return BadRequest("Invalid grooming type");
-
-        a.GroomingTypeId = dto.GroomingTypeId;
-        a.AppointmentDate = requestedUtc;
-        a.DurationMinutes = grooming.DurationMinutes;
-
-        // Recalculate price with discount rule
-        var pastBookings = await _db.Appointments.CountAsync(x => x.UserId == a.UserId && x.AppointmentDate < DateTime.UtcNow);
-        var price = grooming.Price;
-        if (pastBookings > 3) price = price * 0.9m;
-        a.Price = price;
-
-        await _db.SaveChangesAsync();
-        return NoContent();
+        try
+        {
+            await _svc.UpdateAsync(a, dto);
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var a = await _db.Appointments.FindAsync(id);
+        var a = await _svc.FindAsync(id);
         if (a == null) return NotFound();
 
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
         if (a.UserId != userId) return Forbid();
 
-        // cannot delete same day
         if (a.AppointmentDate.Date == DateTime.UtcNow.Date) return BadRequest("Cannot delete appointment on the same day");
 
-        _db.Appointments.Remove(a);
-        await _db.SaveChangesAsync();
+        await _svc.DeleteAsync(a);
         return NoContent();
+    }
+
+    // Expose stored-procedure based customer history for the currently authenticated user
+    [HttpGet("history")]
+    public async Task<IActionResult> GetMyHistory()
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+        if (userId == null) return Unauthorized();
+
+        await using var conn = _db.Database.GetDbConnection();
+        await conn.OpenAsync();
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "sp_GetCustomerAppointmentHistory";
+        cmd.CommandType = System.Data.CommandType.StoredProcedure;
+
+        var param = cmd.CreateParameter();
+        param.ParameterName = "@CustomerId";
+        param.Value = userId;
+        cmd.Parameters.Add(param);
+
+        var dto = new CustomerHistoryDto { BookingCount = 0, LastAppointmentDate = null };
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            dto.BookingCount = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+            dto.LastAppointmentDate = reader.IsDBNull(1) ? null : reader.GetDateTime(1);
+        }
+
+        return Ok(dto);
+    }
+
+    // Expose the SQL view for appointment details (optional date filter)
+    [HttpGet("view")]
+    public async Task<IActionResult> GetAppointmentsView([FromQuery] DateTime? date)
+    {
+        var sql = "SELECT Id, UserId, UserName, FirstName, Email, GroomingTypeId, DogSize, Price, DurationMinutes, AppointmentDate, CreatedAt FROM vw_AppointmentDetails";
+        if (date.HasValue)
+        {
+            sql += " WHERE CAST(AppointmentDate AS DATE) = @d";
+        }
+
+        await using var conn = _db.Database.GetDbConnection();
+        await conn.OpenAsync();
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        if (date.HasValue)
+        {
+            var p = cmd.CreateParameter();
+            p.ParameterName = "@d";
+            p.Value = date.Value.Date;
+            cmd.Parameters.Add(p);
+        }
+
+        var list = new List<object>();
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            list.Add(new
+            {
+                Id = reader.GetInt32(0),
+                UserId = reader.GetString(1),
+                UserName = reader.IsDBNull(2) ? null : reader.GetString(2),
+                FirstName = reader.IsDBNull(3) ? null : reader.GetString(3),
+                Email = reader.IsDBNull(4) ? null : reader.GetString(4),
+                GroomingTypeId = reader.GetInt32(5),
+                DogSize = reader.IsDBNull(6) ? null : reader.GetString(6),
+                Price = reader.GetDecimal(7),
+                DurationMinutes = reader.GetInt32(8),
+                AppointmentDate = reader.GetDateTime(9),
+                CreatedAt = reader.GetDateTime(10)
+            });
+        }
+
+        return Ok(list);
     }
 }
