@@ -31,6 +31,7 @@ import {
   getGroomingTypes,
   getCustomerHistory,
 } from "../api";
+import { dictionary } from "../dictionary";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -76,7 +77,7 @@ export default function AppointmentForm({
         error && typeof error === "object" && "response" in error
           ? (error as AxiosErrorResponse).response?.data?.message
           : undefined;
-      toast.showToast(message || "שגיאה בטעינת סוגי טיפוח", "error");
+      toast.showToast(message || dictionary.errorLoadingGroomingTypes, "error");
     } finally {
       setLoadingTypes(false);
     }
@@ -123,15 +124,15 @@ export default function AppointmentForm({
     const newErrors: { [key: string]: string } = {};
 
     if (!selectedTypeId) {
-      newErrors.type = "אנא בחר סוג טיפוח";
+      newErrors.type = dictionary.pleaseSelectGroomingType;
     }
 
     if (!appointmentDate) {
-      newErrors.date = "אנא בחר תאריך ושעה";
+      newErrors.date = dictionary.pleaseSelectDateAndTime;
     } else {
       const now = dayjs();
       if (appointmentDate.isBefore(now) || appointmentDate.isSame(now)) {
-        newErrors.date = "תאריך התור חייב להיות בעתיד";
+        newErrors.date = dictionary.appointmentDateMustBeInFuture;
       }
     }
 
@@ -152,11 +153,11 @@ export default function AppointmentForm({
       if (appointment) {
         // Update
         await updateAppointment(appointment.id, appointmentDto);
-        toast.showToast("התור עודכן בהצלחה", "success");
+        toast.showToast(dictionary.appointmentUpdatedSuccessfully, "success");
       } else {
         // Create
         await createAppointment(appointmentDto);
-        toast.showToast("התור נוצר בהצלחה", "success");
+        toast.showToast(dictionary.appointmentCreatedSuccessfully, "success");
       }
 
       onSuccess();
@@ -166,7 +167,7 @@ export default function AppointmentForm({
         error && typeof error === "object" && "response" in error
           ? (error as AxiosErrorResponse).response?.data?.message
           : undefined;
-      toast.showToast(message || "שגיאה בשמירת תור", "error");
+      toast.showToast(message || dictionary.errorSavingAppointment, "error");
     } finally {
       setLoading(false);
     }
@@ -189,7 +190,7 @@ export default function AppointmentForm({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {appointment ? "ערוך תור" : "תור חדש"}
+        {appointment ? dictionary.editAppointment : dictionary.newAppointmentForm}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 1 }}>
@@ -201,7 +202,7 @@ export default function AppointmentForm({
             <>
               <TextField
                 select
-                label="סוג טיפוח"
+                label={dictionary.groomingType}
                 value={selectedTypeId}
                 onChange={(e) => setSelectedTypeId(Number(e.target.value))}
                 fullWidth
@@ -209,30 +210,30 @@ export default function AppointmentForm({
                 helperText={
                   errors.type ||
                   (selectedType &&
-                    `מחיר: ₪${selectedType.price.toFixed(2)}, משך זמן: ${
+                    `${dictionary.priceLabel}: ₪${selectedType.price.toFixed(2)}, ${dictionary.durationLabel}: ${
                       selectedType.durationMinutes
-                    } דקות`)
+                    } ${dictionary.minutes}`)
                 }
                 required
               >
                 {groomingTypes.map((type) => (
                   <MenuItem key={type.id} value={type.id}>
                     {type.name} - ₪{type.price.toFixed(2)} (
-                    {type.durationMinutes} דקות)
+                    {type.durationMinutes} {dictionary.minutes})
                   </MenuItem>
                 ))}
               </TextField>
 
               {selectedType && discountEligible && (
                 <Alert severity="info">
-                  יש לך {bookingCount} תורים קודמים - זכאי ל
-                  10% הנחה! מחיר מוזל: ₪{calculatedPrice.toFixed(2)}
+                  {dictionary.youHavePreviousAppointments} {bookingCount} {dictionary.previousAppointments} - {dictionary.eligibleForDiscount}
+                  {dictionary.discountPercent} {dictionary.discountedPrice}: ₪{calculatedPrice.toFixed(2)}
                 </Alert>
               )}
 
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DateTimePicker
-                  label="תאריך ושעה"
+                  label={dictionary.dateAndTimeLabel}
                   value={appointmentDate}
                   onChange={(newValue) => setAppointmentDate(newValue)}
                   minDateTime={dayjs().add(1, "minute")}
@@ -252,20 +253,20 @@ export default function AppointmentForm({
                   sx={{ p: 2, bgcolor: "background.default", borderRadius: 1 }}
                 >
                   <Typography variant="subtitle2" color="text.secondary">
-                    סיכום
+                    {dictionary.summary}
                   </Typography>
                   <Typography variant="body2">
-                    סוג: {selectedType.name}
+                    {dictionary.type}: {selectedType.name}
                   </Typography>
                   <Typography variant="body2">
-                    משך זמן: {selectedType.durationMinutes} דקות
+                    {dictionary.durationLabel}: {selectedType.durationMinutes} {dictionary.minutes}
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
-                    מחיר משוער: ₪{calculatedPrice.toFixed(2)}
-                    {discountEligible && " (כולל הנחה)"}
+                    {dictionary.estimatedPrice}: ₪{calculatedPrice.toFixed(2)}
+                    {discountEligible && ` (${dictionary.includingDiscount})`}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    המחיר הסופי יחושב על ידי השרת
+                    {dictionary.finalPriceCalculatedByServer}
                   </Typography>
                 </Box>
               )}
@@ -275,7 +276,7 @@ export default function AppointmentForm({
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
-          ביטול
+          {dictionary.cancel}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -285,9 +286,9 @@ export default function AppointmentForm({
           {loading ? (
             <CircularProgress size={24} />
           ) : appointment ? (
-            "עדכן"
+            dictionary.update
           ) : (
-            "צור תור"
+            dictionary.createAppointment
           )}
         </Button>
       </DialogActions>

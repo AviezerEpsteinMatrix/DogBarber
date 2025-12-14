@@ -3,6 +3,7 @@ import { Logout, Pets } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from './Toast'
+import { dictionary } from '../dictionary'
 
 export default function AppHeader() {
   const navigate = useNavigate()
@@ -11,7 +12,7 @@ export default function AppHeader() {
 
   const handleLogout = () => {
     logout()
-    showToast('התנתקת בהצלחה', 'info')
+    showToast(dictionary.loggedOutSuccessfully, 'info')
     navigate('/login')
   }
 
@@ -20,15 +21,15 @@ export default function AppHeader() {
       <Toolbar>
         <Pets sx={{ mr: 2 }} />
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          מספרת כלבים
+          {dictionary.dogBarber}
         </Typography>
         {customer && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="body2">
-              שלום, {customer.firstName} ({customer.userName})
+              {dictionary.hello}, {customer.firstName} ({customer.userName})
             </Typography>
             <Button color="inherit" startIcon={<Logout />} onClick={handleLogout}>
-              התנתק
+              {dictionary.logout}
             </Button>
           </Box>
         )}

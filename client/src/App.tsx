@@ -20,6 +20,7 @@ import { heIL } from "@mui/x-date-pickers/locales";
 
 import { CacheProvider } from "@emotion/react";
 import { rtlCache } from "./rtlCache";
+import { dictionary } from "./dictionary";
 
 const theme = createTheme(
   {
@@ -60,7 +61,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
               textShadow: "2px 2px 4px rgba(0,0,0,0.2)",
             }}
           >
-            מספרת כלבים
+            {dictionary.dogBarber}
           </Typography>
           <Typography
             variant="h6"
@@ -69,7 +70,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
               textShadow: "1px 1px 2px rgba(0,0,0,0.2)",
             }}
           >
-            ניהול תורים מקצועי למספרת כלבים
+            {dictionary.manageAppointmentsToDogBarber}
           </Typography>
         </Box>
 

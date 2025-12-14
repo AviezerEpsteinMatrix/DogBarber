@@ -15,6 +15,7 @@ import type { AxiosErrorResponse } from "../api";
 import { login, getCurrentCustomer } from "../api";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../components/Toast";
+import { dictionary } from "../dictionary";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -32,13 +33,13 @@ export default function Login() {
     try {
       const data = await login({ userName, password });
       const token = data?.token;
-      if (!token) throw new Error("לא הוחזר אסימון");
+      if (!token) throw new Error(dictionary.noTokenReturned);
       // store token in localStorage
       localStorage.setItem("jwt", token);
       // Fetch customer info
       const customer = await getCurrentCustomer();
       setCustomer(customer);
-      showToast("התחברת בהצלחה", "success");
+      showToast(dictionary.loggedInSuccessfully, "success");
       navigate("/appointments");
     } catch (err) {
       const message =
@@ -47,8 +48,8 @@ export default function Login() {
             (err as AxiosErrorResponse).message
           : err instanceof Error
           ? err.message
-          : "שגיאת התחברות";
-      setError(message || "שגיאת התחברות");
+          : dictionary.loginError;
+      setError(message || dictionary.loginError);
     } finally {
       setLoading(false);
     }
@@ -73,10 +74,10 @@ export default function Login() {
           fontWeight="bold"
           color="primary"
         >
-          התחברות
+          {dictionary.login}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          הזן את פרטי ההתחברות שלך כדי להמשיך
+          {dictionary.enterCredentialsToContinue}
         </Typography>
       </Box>
 
@@ -93,7 +94,7 @@ export default function Login() {
 
         <TextField
           fullWidth
-          label="שם משתמש"
+          label={dictionary.username}
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
           required
@@ -114,7 +115,7 @@ export default function Login() {
 
         <TextField
           fullWidth
-          label="סיסמה"
+          label={dictionary.password}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -153,7 +154,11 @@ export default function Login() {
             },
           }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : "התחבר"}
+          {loading ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : (
+            dictionary.loginButton
+          )}
         </Button>
       </Box>
     </Paper>

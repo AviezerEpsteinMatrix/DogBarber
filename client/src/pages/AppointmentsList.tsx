@@ -36,6 +36,7 @@ import type {
   AxiosErrorResponse,
 } from "../api";
 import { getAppointments, getAppointment, deleteAppointment } from "../api";
+import { dictionary } from "../dictionary";
 
 dayjs.extend(utc);
 
@@ -78,7 +79,7 @@ export default function AppointmentsList() {
         error && typeof error === "object" && "response" in error
           ? (error as AxiosErrorResponse).response?.data?.message
           : undefined;
-      showToast(message || "שגיאה בטעינת תורים", "error");
+      showToast(message || dictionary.errorLoadingAppointments, "error");
     } finally {
       setLoading(false);
     }
@@ -98,7 +99,7 @@ export default function AppointmentsList() {
         error && typeof error === "object" && "response" in error
           ? (error as AxiosErrorResponse).response?.data?.message
           : undefined;
-      showToast(message || "שגיאה בטעינת פרטי תור", "error");
+      showToast(message || dictionary.errorLoadingAppointmentDetails, "error");
     }
   };
 
@@ -112,7 +113,7 @@ export default function AppointmentsList() {
 
     try {
       await deleteAppointment(appointmentToDelete.id);
-      showToast("התור נמחק בהצלחה", "success");
+      showToast(dictionary.appointmentDeletedSuccessfully, "success");
       setDeleteConfirmOpen(false);
       setAppointmentToDelete(null);
       fetchAppointments();
@@ -121,7 +122,7 @@ export default function AppointmentsList() {
         error && typeof error === "object" && "response" in error
           ? (error as AxiosErrorResponse).response?.data?.message
           : undefined;
-      showToast(message || "שגיאה במחיקת תור", "error");
+      showToast(message || dictionary.errorDeletingAppointment, "error");
     }
   };
 
@@ -167,7 +168,7 @@ export default function AppointmentsList() {
           fontWeight="bold"
           sx={{ color: "white" }}
         >
-          רשימת תורים
+          {dictionary.appointmentsList}
         </Typography>
         <Button
           variant="contained"
@@ -175,7 +176,7 @@ export default function AppointmentsList() {
           onClick={handleCreate}
           sx={{ borderRadius: 2 }}
         >
-          תור חדש
+          {dictionary.newAppointment}
         </Button>
       </Box>
 
@@ -189,7 +190,7 @@ export default function AppointmentsList() {
           }}
         >
           <TextField
-            label="חפש לפי שם"
+            label={dictionary.searchByName}
             value={nameFilter}
             onChange={(e) => setNameFilter(e.target.value)}
             size="small"
@@ -197,7 +198,7 @@ export default function AppointmentsList() {
           />
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DatePicker
-              label="מתאריך"
+              label={dictionary.fromDate}
               value={fromDate}
               onChange={(date) => setFromDate(date)}
               slotProps={{
@@ -208,7 +209,7 @@ export default function AppointmentsList() {
               }}
             />
             <DatePicker
-              label="עד תאריך"
+              label={dictionary.toDate}
               value={toDate}
               onChange={(date) => setToDate(date)}
               slotProps={{
@@ -224,7 +225,7 @@ export default function AppointmentsList() {
             onClick={fetchAppointments}
             sx={{ borderRadius: 2 }}
           >
-            חפש
+            {dictionary.search}
           </Button>
           <Button
             variant="text"
@@ -235,7 +236,7 @@ export default function AppointmentsList() {
               fetchAppointments();
             }}
           >
-            נקה
+            {dictionary.clear}
           </Button>
         </Box>
       </Paper>
@@ -249,11 +250,11 @@ export default function AppointmentsList() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>שם לקוח</TableCell>
-                <TableCell>תאריך ושעה</TableCell>
-                <TableCell>סוג טיפוח</TableCell>
-                <TableCell>מחיר</TableCell>
-                <TableCell align="center">פעולות</TableCell>
+                <TableCell>{dictionary.customerName}</TableCell>
+                <TableCell>{dictionary.dateAndTime}</TableCell>
+                <TableCell>{dictionary.groomingType}</TableCell>
+                <TableCell>{dictionary.price}</TableCell>
+                <TableCell align="center">{dictionary.actions}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -261,7 +262,7 @@ export default function AppointmentsList() {
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                     <Typography color="text.secondary">
-                      אין תורים להצגה
+                      {dictionary.noAppointmentsToDisplay}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -287,7 +288,7 @@ export default function AppointmentsList() {
                       align="center"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Tooltip title="צפה בפרטים">
+                      <Tooltip title={dictionary.viewDetails}>
                         <IconButton
                           size="small"
                           onClick={() => handleViewDetail(appointment)}
@@ -298,7 +299,7 @@ export default function AppointmentsList() {
                       </Tooltip>
                       {isOwner(appointment) && (
                         <>
-                          <Tooltip title="ערוך">
+                          <Tooltip title={dictionary.edit}>
                             <IconButton
                               size="small"
                               onClick={() => handleEdit(appointment)}
@@ -310,8 +311,8 @@ export default function AppointmentsList() {
                           <Tooltip
                             title={
                               !canDeleteToday(appointment)
-                                ? "לא ניתן למחוק תור באותו יום"
-                                : "מחק"
+                                ? dictionary.cannotDeleteAppointmentSameDay
+                                : dictionary.delete
                             }
                           >
                             <span>
@@ -343,7 +344,7 @@ export default function AppointmentsList() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>פרטי תור</DialogTitle>
+        <DialogTitle>{dictionary.appointmentDetails}</DialogTitle>
         <DialogContent>
           {selectedAppointment && (
             <Box
@@ -351,7 +352,7 @@ export default function AppointmentsList() {
             >
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
-                  שם לקוח
+                  {dictionary.customerName}
                 </Typography>
                 <Typography variant="body1">
                   {selectedAppointment.firstName} (
@@ -360,7 +361,7 @@ export default function AppointmentsList() {
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
-                  תאריך ושעה
+                  {dictionary.dateAndTime}
                 </Typography>
                 <Typography variant="body1">
                   {formatDate(selectedAppointment.appointmentDate)}
@@ -368,7 +369,7 @@ export default function AppointmentsList() {
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
-                  סוג טיפוח
+                  {dictionary.groomingType}
                 </Typography>
                 <Typography variant="body1">
                   {selectedAppointment.groomingType}
@@ -376,15 +377,15 @@ export default function AppointmentsList() {
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
-                  משך זמן
+                  {dictionary.duration}
                 </Typography>
                 <Typography variant="body1">
-                  {selectedAppointment.durationMinutes} דקות
+                  {selectedAppointment.durationMinutes} {dictionary.minutes}
                 </Typography>
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
-                  מחיר
+                  {dictionary.price}
                 </Typography>
                 <Typography variant="body1" fontWeight="bold">
                   {formatPrice(selectedAppointment.price)}
@@ -392,7 +393,7 @@ export default function AppointmentsList() {
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
-                  נוצר ב
+                  {dictionary.createdAt}
                 </Typography>
                 <Typography variant="body1">
                   {formatDate(selectedAppointment.createdAt)}
@@ -402,7 +403,7 @@ export default function AppointmentsList() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailOpen(false)}>סגור</Button>
+          <Button onClick={() => setDetailOpen(false)}>{dictionary.close}</Button>
         </DialogActions>
       </Dialog>
 
@@ -411,20 +412,20 @@ export default function AppointmentsList() {
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
       >
-        <DialogTitle>מחיקת תור</DialogTitle>
+        <DialogTitle>{dictionary.deleteAppointment}</DialogTitle>
         <DialogContent>
           <Typography>
-            האם אתה בטוח שברצונך למחוק תור זה?
+            {dictionary.confirmDeleteAppointment}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>ביטול</Button>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>{dictionary.cancel}</Button>
           <Button
             onClick={handleDeleteConfirm}
             color="error"
             variant="contained"
           >
-            מחק
+            {dictionary.delete}
           </Button>
         </DialogActions>
       </Dialog>

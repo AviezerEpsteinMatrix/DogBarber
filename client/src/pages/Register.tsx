@@ -13,6 +13,7 @@ import { Person, Lock, Email, Badge } from "@mui/icons-material";
 import type { AxiosErrorResponse } from "../api";
 import { register } from "../api";
 import { useToast } from "../components/Toast";
+import { dictionary } from "../dictionary";
 
 export default function Register() {
   const { showToast } = useToast();
@@ -31,8 +32,8 @@ export default function Register() {
     setLoading(true);
     try {
       await register({ userName, email, password, firstName });
-      setSuccess("ההרשמה הצליחה! כעת תוכל להתחבר.");
-      showToast("ההרשמה הצליחה!", "success");
+      setSuccess(dictionary.registrationSuccessfulCanLogin);
+      showToast(dictionary.registrationSuccessful, "success");
       // Reset form
       setUserName("");
       setEmail("");
@@ -45,8 +46,8 @@ export default function Register() {
             (err as AxiosErrorResponse).message
           : err instanceof Error
           ? err.message
-          : "ההרשמה נכשלה";
-      const errorMessage = message || "ההרשמה נכשלה";
+          : dictionary.registrationFailed;
+      const errorMessage = message || dictionary.registrationFailed;
       setError(errorMessage);
       showToast(errorMessage, "error");
     } finally {
@@ -73,10 +74,10 @@ export default function Register() {
           fontWeight="bold"
           color="primary"
         >
-          הרשמה
+          {dictionary.register}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          צור חשבון חדש כדי להתחיל
+          {dictionary.createAccountToGetStarted}
         </Typography>
       </Box>
 
@@ -98,7 +99,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="שם משתמש"
+          label={dictionary.username}
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
           required
@@ -119,7 +120,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="שם פרטי"
+          label={dictionary.firstName}
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           required
@@ -140,7 +141,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="אימייל"
+          label={dictionary.email}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -162,7 +163,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="סיסמה"
+          label={dictionary.password}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -201,7 +202,11 @@ export default function Register() {
             },
           }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : "הירשם"}
+          {loading ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : (
+            dictionary.registerButton
+          )}
         </Button>
       </Box>
     </Paper>
