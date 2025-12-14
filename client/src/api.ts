@@ -89,12 +89,12 @@ export interface CustomerHistory {
 
 export interface AppointmentView {
   id: number;
-  userId: number;
-  userName: string;
-  firstName: string;
-  email: string;
+  userId: string;
+  userName: string | null;
+  firstName: string | null;
+  email: string | null;
   groomingTypeId: number;
-  dogSize: string;
+  dogSize: string | null;
   price: number;
   durationMinutes: number;
   appointmentDate: string;
@@ -174,8 +174,18 @@ export async function getCustomerHistory(id: number): Promise<CustomerHistory> {
   return res.data;
 }
 
-export async function getAppointmentsView(): Promise<AppointmentView[]> {
-  const res = await api.get<AppointmentView[]>("/customers/appointments/view");
+// Get customer history for currently authenticated user (stored procedure)
+export async function getMyHistory(): Promise<CustomerHistory> {
+  const res = await api.get<CustomerHistory>("/customers/history");
+  return res.data;
+}
+
+// Get appointments view (SQL view) with optional date filter
+export async function getAppointmentsView(
+  date?: Date
+): Promise<AppointmentView[]> {
+  const params = date ? { date: date.toISOString().split("T")[0] } : {};
+  const res = await api.get<AppointmentView[]>("/customers/view", { params });
   return res.data;
 }
 

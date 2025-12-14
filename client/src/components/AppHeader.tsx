@@ -1,5 +1,5 @@
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material'
-import { Logout, Pets } from '@mui/icons-material'
+import { Logout, Pets, Science } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from './Toast'
@@ -28,6 +28,13 @@ export default function AppHeader() {
             <Typography variant="body2">
               {dictionary.hello}, {customer.firstName} ({customer.userName})
             </Typography>
+            <Button
+              color="inherit"
+              startIcon={<Science />}
+              onClick={() => navigate('/test-view-sp')}
+            >
+              {dictionary.testViewAndSp}
+            </Button>
             <Button color="inherit" startIcon={<Logout />} onClick={handleLogout}>
               {dictionary.logout}
             </Button>

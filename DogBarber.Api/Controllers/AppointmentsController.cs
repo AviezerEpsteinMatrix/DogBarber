@@ -25,6 +25,7 @@ public class AppointmentsController : ControllerBase
         _db = db;
     }
 
+    // Minimal list: each row shows customer's name, appointment time, grooming type
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] string? name, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
     {
@@ -48,29 +49,28 @@ public class AppointmentsController : ControllerBase
         {
             a.Id,
             UserName = a.User.UserName,
-            FirstName = a.User.FirstName,
-            a.AppointmentDate,
-            GroomingType = a.GroomingType.Name,
-            a.Price
+            AppointmentDate = a.AppointmentDate,
+            GroomingType = a.GroomingType.Name
         }).ToListAsync();
 
         return Ok(list);
     }
 
+    // Full details for popup — includes createdAt and grooming details
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var a = await _svc.FindAsync(id);
+        var a = await _svc.Query().Include(x => x.User).Include(x => x.GroomingType).FirstOrDefaultAsync(x => x.Id == id);
         if (a == null) return NotFound();
-        await Task.CompletedTask; // keep async
+
         return Ok(new
         {
             a.Id,
             a.AppointmentDate,
             a.CreatedAt,
-            UserName = a.User.UserName,
-            FirstName = a.User.FirstName,
-            GroomingType = a.GroomingType.Name,
+            UserName = a.User?.UserName,
+            FirstName = a.User?.FirstName,
+            GroomingType = a.GroomingType?.Name,
             a.Price,
             a.DurationMinutes
         });
@@ -90,20 +90,19 @@ public class AppointmentsController : ControllerBase
         try
         {
             var appointment = await _svc.CreateAsync(user.Id, dto);
+            var created = await _svc.Query().Include(x => x.GroomingType).FirstOrDefaultAsync(x => x.Id == appointment.Id);
 
-            var response = new
+            return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, new
             {
                 appointment.Id,
                 appointment.AppointmentDate,
                 appointment.CreatedAt,
                 UserName = user.UserName,
                 FirstName = user.FirstName,
-                GroomingType = (await _svc.FindAsync(appointment.Id)).GroomingType.Name,
+                GroomingType = created?.GroomingType?.Name,
                 appointment.Price,
                 appointment.DurationMinutes
-            };
-
-            return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, response);
+            });
         }
         catch (ArgumentException ex)
         {
@@ -138,96 +137,41 @@ public class AppointmentsController : ControllerBase
         }
     }
 
+    // Use stored procedure to delete appointment: enforces ownership and same-day rule inside DB
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var a = await _svc.FindAsync(id);
-        if (a == null) return NotFound();
-
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-        if (a.UserId != userId) return Forbid();
-
-        if (a.AppointmentDate.Date == DateTime.UtcNow.Date) return BadRequest("Cannot delete appointment on the same day");
-
-        await _svc.DeleteAsync(a);
-        return NoContent();
-    }
-
-    // Expose stored-procedure based customer history for the currently authenticated user
-    [HttpGet("history")]
-    public async Task<IActionResult> GetMyHistory()
-    {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
         if (userId == null) return Unauthorized();
 
         await using var conn = _db.Database.GetDbConnection();
         await conn.OpenAsync();
 
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "sp_GetCustomerAppointmentHistory";
+        cmd.CommandText = "sp_DeleteAppointment";
         cmd.CommandType = System.Data.CommandType.StoredProcedure;
 
-        var param = cmd.CreateParameter();
-        param.ParameterName = "@CustomerId";
-        param.Value = userId;
-        cmd.Parameters.Add(param);
+        var p1 = cmd.CreateParameter();
+        p1.ParameterName = "@AppointmentId";
+        p1.Value = id;
+        cmd.Parameters.Add(p1);
 
-        var dto = new CustomerHistoryDto { BookingCount = 0, LastAppointmentDate = null };
+        var p2 = cmd.CreateParameter();
+        p2.ParameterName = "@UserId";
+        p2.Value = userId;
+        cmd.Parameters.Add(p2);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
+        int affected = 0;
+        await using (var reader = await cmd.ExecuteReaderAsync())
         {
-            dto.BookingCount = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
-            dto.LastAppointmentDate = reader.IsDBNull(1) ? null : reader.GetDateTime(1);
-        }
-
-        return Ok(dto);
-    }
-
-    // Expose the SQL view for appointment details (optional date filter)
-    [HttpGet("view")]
-    public async Task<IActionResult> GetAppointmentsView([FromQuery] DateTime? date)
-    {
-        var sql = "SELECT Id, UserId, UserName, FirstName, Email, GroomingTypeId, DogSize, Price, DurationMinutes, AppointmentDate, CreatedAt FROM vw_AppointmentDetails";
-        if (date.HasValue)
-        {
-            sql += " WHERE CAST(AppointmentDate AS DATE) = @d";
-        }
-
-        await using var conn = _db.Database.GetDbConnection();
-        await conn.OpenAsync();
-
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        if (date.HasValue)
-        {
-            var p = cmd.CreateParameter();
-            p.ParameterName = "@d";
-            p.Value = date.Value.Date;
-            cmd.Parameters.Add(p);
-        }
-
-        var list = new List<object>();
-        await using var reader = await cmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            list.Add(new
+            if (await reader.ReadAsync())
             {
-                Id = reader.GetInt32(0),
-                UserId = reader.GetString(1),
-                UserName = reader.IsDBNull(2) ? null : reader.GetString(2),
-                FirstName = reader.IsDBNull(3) ? null : reader.GetString(3),
-                Email = reader.IsDBNull(4) ? null : reader.GetString(4),
-                GroomingTypeId = reader.GetInt32(5),
-                DogSize = reader.IsDBNull(6) ? null : reader.GetString(6),
-                Price = reader.GetDecimal(7),
-                DurationMinutes = reader.GetInt32(8),
-                AppointmentDate = reader.GetDateTime(9),
-                CreatedAt = reader.GetDateTime(10)
-            });
+                affected = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+            }
         }
 
-        return Ok(list);
+        if (affected == 0) return BadRequest("Cannot delete appointment. Either it does not exist, does not belong to you, or is scheduled for today.");
+
+        return NoContent();
     }
 }
