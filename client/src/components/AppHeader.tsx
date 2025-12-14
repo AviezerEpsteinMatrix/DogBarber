@@ -11,7 +11,7 @@ export default function AppHeader() {
 
   const handleLogout = () => {
     logout()
-    showToast('Logged out successfully', 'info')
+    showToast('התנתקת בהצלחה', 'info')
     navigate('/login')
   }
 
@@ -20,15 +20,15 @@ export default function AppHeader() {
       <Toolbar>
         <Pets sx={{ mr: 2 }} />
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Dog Barber
+          מספרת כלבים
         </Typography>
         {customer && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="body2">
-              Hello, {customer.firstName} ({customer.userName})
+              שלום, {customer.firstName} ({customer.userName})
             </Typography>
             <Button color="inherit" startIcon={<Logout />} onClick={handleLogout}>
-              Logout
+              התנתק
             </Button>
           </Box>
         )}

@@ -76,7 +76,7 @@ export default function AppointmentForm({
         error && typeof error === "object" && "response" in error
           ? (error as AxiosErrorResponse).response?.data?.message
           : undefined;
-      toast.showToast(message || "Error loading grooming types", "error");
+      toast.showToast(message || "שגיאה בטעינת סוגי טיפוח", "error");
     } finally {
       setLoadingTypes(false);
     }
@@ -123,15 +123,15 @@ export default function AppointmentForm({
     const newErrors: { [key: string]: string } = {};
 
     if (!selectedTypeId) {
-      newErrors.type = "Please select a grooming type";
+      newErrors.type = "אנא בחר סוג טיפוח";
     }
 
     if (!appointmentDate) {
-      newErrors.date = "Please select date and time";
+      newErrors.date = "אנא בחר תאריך ושעה";
     } else {
       const now = dayjs();
       if (appointmentDate.isBefore(now) || appointmentDate.isSame(now)) {
-        newErrors.date = "Appointment date must be in the future";
+        newErrors.date = "תאריך התור חייב להיות בעתיד";
       }
     }
 
@@ -152,11 +152,11 @@ export default function AppointmentForm({
       if (appointment) {
         // Update
         await updateAppointment(appointment.id, appointmentDto);
-        toast.showToast("Appointment updated successfully", "success");
+        toast.showToast("התור עודכן בהצלחה", "success");
       } else {
         // Create
         await createAppointment(appointmentDto);
-        toast.showToast("Appointment created successfully", "success");
+        toast.showToast("התור נוצר בהצלחה", "success");
       }
 
       onSuccess();
@@ -166,7 +166,7 @@ export default function AppointmentForm({
         error && typeof error === "object" && "response" in error
           ? (error as AxiosErrorResponse).response?.data?.message
           : undefined;
-      toast.showToast(message || "Error saving appointment", "error");
+      toast.showToast(message || "שגיאה בשמירת תור", "error");
     } finally {
       setLoading(false);
     }
@@ -189,7 +189,7 @@ export default function AppointmentForm({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {appointment ? "Edit Appointment" : "New Appointment"}
+        {appointment ? "ערוך תור" : "תור חדש"}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 1 }}>
@@ -201,7 +201,7 @@ export default function AppointmentForm({
             <>
               <TextField
                 select
-                label="Grooming Type"
+                label="סוג טיפוח"
                 value={selectedTypeId}
                 onChange={(e) => setSelectedTypeId(Number(e.target.value))}
                 fullWidth
@@ -209,30 +209,30 @@ export default function AppointmentForm({
                 helperText={
                   errors.type ||
                   (selectedType &&
-                    `Price: ₪${selectedType.price.toFixed(2)}, Duration: ${
+                    `מחיר: ₪${selectedType.price.toFixed(2)}, משך זמן: ${
                       selectedType.durationMinutes
-                    } minutes`)
+                    } דקות`)
                 }
                 required
               >
                 {groomingTypes.map((type) => (
                   <MenuItem key={type.id} value={type.id}>
                     {type.name} - ₪{type.price.toFixed(2)} (
-                    {type.durationMinutes} minutes)
+                    {type.durationMinutes} דקות)
                   </MenuItem>
                 ))}
               </TextField>
 
               {selectedType && discountEligible && (
                 <Alert severity="info">
-                  You have {bookingCount} previous appointments - eligible for
-                  10% discount! Discounted price: ₪{calculatedPrice.toFixed(2)}
+                  יש לך {bookingCount} תורים קודמים - זכאי ל
+                  10% הנחה! מחיר מוזל: ₪{calculatedPrice.toFixed(2)}
                 </Alert>
               )}
 
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DateTimePicker
-                  label="Date & Time"
+                  label="תאריך ושעה"
                   value={appointmentDate}
                   onChange={(newValue) => setAppointmentDate(newValue)}
                   minDateTime={dayjs().add(1, "minute")}
@@ -252,20 +252,20 @@ export default function AppointmentForm({
                   sx={{ p: 2, bgcolor: "background.default", borderRadius: 1 }}
                 >
                   <Typography variant="subtitle2" color="text.secondary">
-                    Summary
+                    סיכום
                   </Typography>
                   <Typography variant="body2">
-                    Type: {selectedType.name}
+                    סוג: {selectedType.name}
                   </Typography>
                   <Typography variant="body2">
-                    Duration: {selectedType.durationMinutes} minutes
+                    משך זמן: {selectedType.durationMinutes} דקות
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
-                    Estimated price: ₪{calculatedPrice.toFixed(2)}
-                    {discountEligible && " (including discount)"}
+                    מחיר משוער: ₪{calculatedPrice.toFixed(2)}
+                    {discountEligible && " (כולל הנחה)"}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Final price will be calculated by the server
+                    המחיר הסופי יחושב על ידי השרת
                   </Typography>
                 </Box>
               )}
@@ -275,7 +275,7 @@ export default function AppointmentForm({
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
-          Cancel
+          ביטול
         </Button>
         <Button
           onClick={handleSubmit}
@@ -285,9 +285,9 @@ export default function AppointmentForm({
           {loading ? (
             <CircularProgress size={24} />
           ) : appointment ? (
-            "Update"
+            "עדכן"
           ) : (
-            "Create Appointment"
+            "צור תור"
           )}
         </Button>
       </DialogActions>

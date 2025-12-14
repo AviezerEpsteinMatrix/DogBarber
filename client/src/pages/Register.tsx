@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -8,49 +8,51 @@ import {
   Paper,
   InputAdornment,
   CircularProgress,
-} from '@mui/material'
-import { Person, Lock, Email, Badge } from '@mui/icons-material'
-import type { AxiosErrorResponse } from '../api'
-import { register } from '../api'
-import { useToast } from '../components/Toast'
+} from "@mui/material";
+import { Person, Lock, Email, Badge } from "@mui/icons-material";
+import type { AxiosErrorResponse } from "../api";
+import { register } from "../api";
+import { useToast } from "../components/Toast";
 
 export default function Register() {
-  const { showToast } = useToast()
-  const [userName, setUserName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [firstName, setFirstName] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const { showToast } = useToast();
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError(null)
-    setSuccess(null)
-    setLoading(true)
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
     try {
-      await register({ userName, email, password, firstName })
-      setSuccess('Registration successful! You can now login.')
-      showToast('Registration successful!', 'success')
+      await register({ userName, email, password, firstName });
+      setSuccess("ההרשמה הצליחה! כעת תוכל להתחבר.");
+      showToast("ההרשמה הצליחה!", "success");
       // Reset form
-      setUserName('')
-      setEmail('')
-      setPassword('')
-      setFirstName('')
+      setUserName("");
+      setEmail("");
+      setPassword("");
+      setFirstName("");
     } catch (err) {
-      const message = err && typeof err === 'object' && 'response' in err
-        ? (err as AxiosErrorResponse).response?.data?.message || (err as AxiosErrorResponse).message
-        : err instanceof Error
-        ? err.message
-        : 'Registration failed'
-      const errorMessage = message || 'Registration failed'
-      setError(errorMessage)
-      showToast(errorMessage, 'error')
+      const message =
+        err && typeof err === "object" && "response" in err
+          ? (err as AxiosErrorResponse).response?.data?.message ||
+            (err as AxiosErrorResponse).message
+          : err instanceof Error
+          ? err.message
+          : "ההרשמה נכשלה";
+      const errorMessage = message || "ההרשמה נכשלה";
+      setError(errorMessage);
+      showToast(errorMessage, "error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Paper
@@ -59,20 +61,30 @@ export default function Register() {
         p: 4,
         borderRadius: 3,
         maxWidth: 450,
-        width: '100%',
-        background: 'linear-gradient(145deg, #ffffff 0%, #f5f5f5 100%)',
+        width: "100%",
+        background: "linear-gradient(145deg, #ffffff 0%, #f5f5f5 100%)",
       }}
     >
-      <Box sx={{ mb: 3, textAlign: 'center' }}>
-        <Typography variant="h4" component="h1" gutterBottom fontWeight="bold" color="primary">
-          Register
+      <Box sx={{ mb: 3, textAlign: "center" }}>
+        <Typography
+          variant="h4"
+          component="h1"
+          gutterBottom
+          fontWeight="bold"
+          color="primary"
+        >
+          הרשמה
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Create a new account to get started
+          צור חשבון חדש כדי להתחיל
         </Typography>
       </Box>
 
-      <Box component="form" onSubmit={submit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box
+        component="form"
+        onSubmit={submit}
+        sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+      >
         {error && (
           <Alert severity="error" sx={{ borderRadius: 2 }}>
             {error}
@@ -86,7 +98,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="Username"
+          label="שם משתמש"
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
           required
@@ -99,7 +111,7 @@ export default function Register() {
             ),
           }}
           sx={{
-            '& .MuiOutlinedInput-root': {
+            "& .MuiOutlinedInput-root": {
               borderRadius: 2,
             },
           }}
@@ -107,7 +119,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="First Name"
+          label="שם פרטי"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           required
@@ -120,7 +132,7 @@ export default function Register() {
             ),
           }}
           sx={{
-            '& .MuiOutlinedInput-root': {
+            "& .MuiOutlinedInput-root": {
               borderRadius: 2,
             },
           }}
@@ -128,7 +140,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="Email"
+          label="אימייל"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -142,7 +154,7 @@ export default function Register() {
             ),
           }}
           sx={{
-            '& .MuiOutlinedInput-root': {
+            "& .MuiOutlinedInput-root": {
               borderRadius: 2,
             },
           }}
@@ -150,7 +162,7 @@ export default function Register() {
 
         <TextField
           fullWidth
-          label="Password"
+          label="סיסמה"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -164,7 +176,7 @@ export default function Register() {
             ),
           }}
           sx={{
-            '& .MuiOutlinedInput-root': {
+            "& .MuiOutlinedInput-root": {
               borderRadius: 2,
             },
           }}
@@ -180,18 +192,18 @@ export default function Register() {
             mt: 2,
             py: 1.5,
             borderRadius: 2,
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            textTransform: 'none',
-            background: 'linear-gradient(45deg, #2e7d32 30%, #4caf50 90%)',
-            '&:hover': {
-              background: 'linear-gradient(45deg, #1b5e20 30%, #388e3c 90%)',
+            fontSize: "1.1rem",
+            fontWeight: "bold",
+            textTransform: "none",
+            background: "linear-gradient(45deg, #2e7d32 30%, #4caf50 90%)",
+            "&:hover": {
+              background: "linear-gradient(45deg, #1b5e20 30%, #388e3c 90%)",
             },
           }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Register'}
+          {loading ? <CircularProgress size={24} color="inherit" /> : "הירשם"}
         </Button>
       </Box>
     </Paper>
-  )
+  );
 }

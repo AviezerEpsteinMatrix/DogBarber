@@ -16,20 +16,24 @@ import AppHeader from "./components/AppHeader";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AppointmentsList from "./pages/AppointmentsList";
+import { heIL } from "@mui/x-date-pickers/locales";
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#1976d2",
+import { CacheProvider } from "@emotion/react";
+import { rtlCache } from "./rtlCache";
+
+const theme = createTheme(
+  {
+    palette: {
+      primary: { main: "#1976d2" },
+      secondary: { main: "#2e7d32" },
     },
-    secondary: {
-      main: "#2e7d32",
+    typography: {
+      fontFamily: ["Segoe UI", "Arial", "Helvetica", "sans-serif"].join(","),
     },
+    direction: "rtl",
   },
-  typography: {
-    fontFamily: ["Segoe UI", "Arial", "Helvetica", "sans-serif"].join(","),
-  },
-});
+  heIL
+);
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -56,7 +60,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
               textShadow: "2px 2px 4px rgba(0,0,0,0.2)",
             }}
           >
-            Dog Barber
+            מספרת כלבים
           </Typography>
           <Typography
             variant="h6"
@@ -65,9 +69,10 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
               textShadow: "1px 1px 2px rgba(0,0,0,0.2)",
             }}
           >
-            Professional Dog Grooming Appointment Management
+            ניהול תורים מקצועי למספרת כלבים
           </Typography>
         </Box>
+
         <Box
           sx={{
             display: "flex",
@@ -84,82 +89,90 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  // Ensure the document is RTL as well
+  React.useEffect(() => {
+    document.documentElement.dir = "rtl";
+    document.documentElement.lang = "he";
+  }, []);
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <BrowserRouter>
-        <AuthProvider>
-          <ToastProvider>
-            <Routes>
-              <Route
-                path="/login"
-                element={
-                  <AuthLayout>
-                    <Box
-                      sx={{
-                        minWidth: { xs: "100%", sm: "400px", md: "450px" },
-                      }}
-                    >
-                      <Login />
-                    </Box>
-                    <Box
-                      sx={{
-                        minWidth: { xs: "100%", sm: "400px", md: "450px" },
-                      }}
-                    >
-                      <Register />
-                    </Box>
-                  </AuthLayout>
-                }
-              />
-              <Route
-                path="/register"
-                element={
-                  <AuthLayout>
-                    <Box
-                      sx={{
-                        minWidth: { xs: "100%", sm: "400px", md: "450px" },
-                      }}
-                    >
-                      <Login />
-                    </Box>
-                    <Box
-                      sx={{
-                        minWidth: { xs: "100%", sm: "400px", md: "450px" },
-                      }}
-                    >
-                      <Register />
-                    </Box>
-                  </AuthLayout>
-                }
-              />
-              <Route
-                path="/appointments"
-                element={
-                  <ProtectedRoute>
-                    <Box
-                      sx={{
-                        minHeight: "100vh",
-                        background:
-                          "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      }}
-                    >
-                      <Container maxWidth="xl" sx={{ py: 3 }}>
-                        <AppHeader />
-                        <AppointmentsList />
-                      </Container>
-                    </Box>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/"
-                element={<Navigate to="/appointments" replace />}
-              />
-            </Routes>
-          </ToastProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
+    <CacheProvider value={rtlCache}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <BrowserRouter>
+          <AuthProvider>
+            <ToastProvider>
+              <Routes>
+                <Route
+                  path="/login"
+                  element={
+                    <AuthLayout>
+                      <Box
+                        sx={{
+                          minWidth: { xs: "100%", sm: "400px", md: "450px" },
+                        }}
+                      >
+                        <Login />
+                      </Box>
+                      <Box
+                        sx={{
+                          minWidth: { xs: "100%", sm: "400px", md: "450px" },
+                        }}
+                      >
+                        <Register />
+                      </Box>
+                    </AuthLayout>
+                  }
+                />
+                <Route
+                  path="/register"
+                  element={
+                    <AuthLayout>
+                      <Box
+                        sx={{
+                          minWidth: { xs: "100%", sm: "400px", md: "450px" },
+                        }}
+                      >
+                        <Login />
+                      </Box>
+                      <Box
+                        sx={{
+                          minWidth: { xs: "100%", sm: "400px", md: "450px" },
+                        }}
+                      >
+                        <Register />
+                      </Box>
+                    </AuthLayout>
+                  }
+                />
+                <Route
+                  path="/appointments"
+                  element={
+                    <ProtectedRoute>
+                      <Box
+                        sx={{
+                          minHeight: "100vh",
+                          background:
+                            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                        }}
+                      >
+                        <Container maxWidth="xl" sx={{ py: 3 }}>
+                          <AppHeader />
+                          <AppointmentsList />
+                        </Container>
+                      </Box>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/"
+                  element={<Navigate to="/appointments" replace />}
+                />
+              </Routes>
+            </ToastProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
+    </CacheProvider>
   );
 }
