@@ -1,17 +1,57 @@
-# DogBarber — Running the Server and Client (Local Development)
+# DogBarber
 
-This repository contains two main parts:
+## Project Overview
+A simple appointment management system for a dog grooming business. The API provides authentication, appointment CRUD, and business rules (pricing, discounts, deletion restrictions). A React + Vite frontend consumes the API for client-side user flows.
 
-- DogBarber.Api — ASP.NET Core Web API (server)
-- client — Vite + React + TypeScript frontend (client)
+## Features (Assignment Coverage)
+| Requirement | Implementation |
+|---|---|
+| User registration and login | AuthController with JWT issuance via AuthService; registration/login endpoints implemented |
+| Create / Read / Update / Delete appointments | AppointmentsController exposes appointment endpoints; server enforces same-day delete restriction and price calculation |
+| Manage grooming types | GroomingTypesController and seeded GroomingTypes table with price/duration data |
+| Customer appointment history | Stored procedure `sp_GetCustomerAppointmentHistory` and CustomersController to fetch history |
+| Use of DB objects (stored procedures / views) | Migrations create stored procedures and view (see Database section) |
 
-Prerequisites
-- .NET 8 SDK
-- Node.js (16+ recommended) and npm (or pnpm/yarn)
-- SQL Server LocalDB or another SQL Server instance
-- (Optional) EF Core tools: dotnet tool install --global dotnet-ef
+## Tech Stack
+- Backend: .NET 8, ASP.NET Core Web API, Entity Framework Core (SQL Server provider)
+- Authentication: ASP.NET Identity + JWT (symmetric key)
+- Frontend: React, TypeScript, Vite, MUI
+- DB: Microsoft SQL Server (LocalDB for development)
 
-Server (DogBarber.Api)
+## Database
+Connection string: DogBarber.Api/appsettings.json -> ConnectionStrings:DefaultConnection (defaults to LocalDB)
+
+### Tables
+- AspNetUsers (Identity users) — extended with FirstName
+- AspNetRoles, AspNetUserRoles, AspNetUserClaims, etc. (Identity)
+- GroomingTypes — Id, Name, DurationMinutes, Price (seeded)
+- Appointments — Id, UserId, GroomingTypeId, AppointmentDate, CreatedAt, Price, DurationMinutes
+
+### Stored Procedures
+- sp_GetCustomerAppointmentHistory
+  - What it does: returns booking count and last appointment date for a given customer (used to determine eligibility for discounts / history display).
+- sp_DeleteAppointment
+  - What it does: deletes an appointment for a given appointment id and user only if the appointment is not scheduled for the same calendar day; returns affected rows.
+
+### Views
+- vw_AppointmentDetails
+  - What it returns: a joined projection of appointment details including user info (UserName, FirstName, Email) and grooming type metadata (Name, Price, DurationMinutes).
+
+## API Endpoints (high level)
+- POST /api/auth/register — create account
+- POST /api/auth/login — authenticate and receive JWT
+- GET /api/groomingtypes — list grooming types
+- GET /api/appointments — list/filter appointments (requires auth)
+- POST /api/appointments — create appointment (requires auth)
+- PUT /api/appointments/{id} — update appointment (requires auth)
+- DELETE /api/appointments/{id} — delete appointment (uses sp_DeleteAppointment via controller; same-day deletion prevented)
+- GET /api/customers/{id}/history — retrieves customer history (uses sp_GetCustomerAppointmentHistory)
+
+(See controllers in DogBarber.Api/Controllers for more details.)
+
+## Run Locally
+
+### Server (DogBarber.Api)
 1. Configure connection string and JWT
    - Default connection is in DogBarber.Api/appsettings.json:
      - ConnectionStrings: DefaultConnection => LocalDB: `Server=(localdb)\\MSSQLLocalDB;Database=DogBarberDb;Trusted_Connection=True;MultipleActiveResultSets=true`
@@ -29,7 +69,7 @@ Server (DogBarber.Api)
    - Use the Package Manager Console to run: Update-Database
    - Start the app with Debug > Start Debugging or Start Without Debugging.
 
-Client (client)
+### Client (client)
 1. Configure API URL
    - client/.env.development contains a VITE_API_URL variable. Example:
      - VITE_API_URL=http://localhost:5192/api
@@ -41,26 +81,15 @@ Client (client)
    - npm run dev
    - Vite dev server typically serves at http://localhost:5173 — open that in your browser.
 
-Common commands
-- Apply DB migrations (CLI): cd DogBarber.Api && dotnet ef database update
-- Start API (CLI): cd DogBarber.Api && dotnet run --urls "http://localhost:5192"
-- Start client: cd client && npm install && npm run dev
-- List migrations: cd DogBarber.Api && dotnet ef migrations list
+## Screenshots
+(placeholder — screenshots will be added by the project owner)
 
-Environment & security notes
-- appsettings.json contains a development JWT key. Replace with a secure key before publishing.
-- For production, move connection strings and secrets to environment variables or a secrets store.
-
-Troubleshooting
-- If the client cannot talk to the server:
-  - Confirm server is running and reachable at the URL in client/.env.development.
-  - Check CORS allowed origins in DogBarber.Api/Program.cs; development CORS allows Vite default origins.
-- If EF reports pending migrations, run: dotnet ef database update
-- If using LocalDB fails, point `DefaultConnection` to a reachable SQL Server instance.
-
-Extras
-- To add convenience scripts, consider creating a PowerShell or shell script to start both server and client together, or add a docker-compose file for full-stack development.
+## Security Notes
+- The JWT symmetric key in appsettings.json is for development only. Replace it with a long random secret in production and/or store it in environment variables or a secrets manager.
+- Do not commit production connection strings or secrets.
+- CORS is configured for common local dev ports in Program.cs; restrict origins in production.
+- Passwords are stored via ASP.NET Identity hashing (do not override with custom insecure logic).
 
 ---
 
-If you want, I can add a convenience script (PowerShell or npm script) to run client and server together.
+If you want, I can add a small script to start both server and client together or add a Docker Compose file for development.
