@@ -53,6 +53,7 @@ export default function AppointmentsList() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] =
     useState<AppointmentDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] =
     useState<Appointment | null>(null);
@@ -92,6 +93,15 @@ export default function AppointmentsList() {
   }, [fetchAppointments]);
 
   const handleViewDetail = async (appointment: Appointment) => {
+    // Prevent duplicate requests
+    if (loadingDetail) return;
+
+    // If clicking the same appointment and modal is already open, just return
+    if (detailOpen && selectedAppointment?.id === appointment.id) {
+      return;
+    }
+
+    setLoadingDetail(true);
     try {
       const detail = await getAppointment(appointment.id);
       setSelectedAppointment(detail);
@@ -102,6 +112,8 @@ export default function AppointmentsList() {
           ? (error as AxiosErrorResponse).response?.data?.message
           : undefined;
       showToast(message || dictionary.errorLoadingAppointmentDetails, "error");
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
@@ -126,20 +138,26 @@ export default function AppointmentsList() {
     } catch (error) {
       // Handle 400 Bad Request with server message
       const errorResponse = error as AxiosErrorResponse;
-      let message = dictionary.errorDeletingAppointment;
-      
+      let message: string = dictionary.errorDeletingAppointment;
+
       if (errorResponse.response?.status === 400) {
         // Server returns error message in response body as { "error": "..." }
-        const errorData = errorResponse.response.data as { error?: string; message?: string };
+        const errorData = errorResponse.response.data as {
+          error?: string;
+          message?: string;
+        };
         if (errorData?.error) {
           message = errorData.error;
         } else if (errorData?.message) {
           message = errorData.message;
         }
-      } else if (errorResponse.response?.status === 401 || errorResponse.response?.status === 403) {
+      } else if (
+        errorResponse.response?.status === 401 ||
+        errorResponse.response?.status === 403
+      ) {
         message = "אין הרשאה למחוק תור זה";
       }
-      
+
       showToast(message, "error");
     }
   };
@@ -172,7 +190,6 @@ export default function AppointmentsList() {
   const formatPrice = (price: number) => {
     return `₪${price.toFixed(2)}`;
   };
-
 
   return (
     <Box sx={{ p: 3 }}>
@@ -292,8 +309,18 @@ export default function AppointmentsList() {
                   <TableRow
                     key={appointment.id}
                     hover
-                    sx={{ cursor: "pointer" }}
-                    onClick={() => handleViewDetail(appointment)}
+                    sx={{ cursor: loadingDetail ? "wait" : "pointer" }}
+                    onClick={(e) => {
+                      // Don't trigger if clicking on action buttons
+                      if (
+                        (e.target as HTMLElement).closest(
+                          'button, [role="button"]'
+                        )
+                      ) {
+                        return;
+                      }
+                      handleViewDetail(appointment);
+                    }}
                   >
                     <TableCell>{appointment.userName}</TableCell>
                     <TableCell>
@@ -428,7 +455,9 @@ export default function AppointmentsList() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailOpen(false)}>{dictionary.close}</Button>
+          <Button onClick={() => setDetailOpen(false)}>
+            {dictionary.close}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -439,12 +468,12 @@ export default function AppointmentsList() {
       >
         <DialogTitle>{dictionary.deleteAppointment}</DialogTitle>
         <DialogContent>
-          <Typography>
-            {dictionary.confirmDeleteAppointment}
-          </Typography>
+          <Typography>{dictionary.confirmDeleteAppointment}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>{dictionary.cancel}</Button>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>
+            {dictionary.cancel}
+          </Button>
           <Button
             onClick={handleDeleteConfirm}
             color="error"
